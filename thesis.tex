@@ -1,0 +1,146 @@
+\documentclass[12pt]{report}
+
+\usepackage{multirow}
+\usepackage{longtable}
+\usepackage[table]{xcolor}
+\usepackage[latin2]{inputenc}
+\usepackage{amsmath}
+\usepackage[pdftex]{graphicx}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+%\usepackage{fancyhdr}
+\usepackage[left=1.5in]{geometry}
+\usepackage{geometry}
+%\pagestyle{fancyplain}
+\usepackage{wrapfig}
+\usepackage{setspace}
+\usepackage{epsfig}
+\usepackage{color}
+\usepackage{tikz}
+\usepackage{build-aux/UVMThesisStyle-July2020}
+\usepackage{cancel}
+\usepackage{float}
+\usepackage{cite}
+\usepackage{url}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage[raggedright]{titlesec}
+\usepackage{tabularx}
+\usepackage{subcaption}
+
+\newcommand{\rcell}[1]{\multicolumn{1}{r}{#1}}
+
+%\titleformat{\chapter}
+%  {\bf\huge\sc}
+%  {\chaptertitlename\ \thechapter}
+%  {10pt}
+%  {\bf\huge\sc}
+
+% ==================================
+% Set up title page
+% ==================================
+%\includeonly{Appendix}
+\title{\vspace{-1cm}Deep Reinforcement Machine Learning as a Driver of Agent Decision-Making in Agent-Based Models of Coupled Natural and Human Complex Systems}
+\author{Kevin Allen Andrew}
+\defensedate{July 12th, 2023}
+\thesis
+\masterscience
+\cs
+%\gradyear{2014}        %%The year in which the degree will be conferred
+\auggrad
+\advisor{Asim Zia, Ph.D.}
+\chair{Scott Hamshaw, Ph.D.}
+%\readerone{Safwan Wshah, Ph.D.}
+%\readertwo{\ }
+\readerone{Donna Rizzo, Ph.D.}
+\readertwo{Safwan Wshah, Ph.D.}
+\dean{Cynthia J. Forehand, Ph.D.}
+
+\begin{document}
+
+\maketitle
+%\makeacceptance
+\pagenumbering{roman}
+
+\begin{abstract}
+	
+\vspace{10mm}
+Agent-based models are becoming increasingly useful in studying the behavior 
+of real-world complex multi-agent systems; however, one of the outstanding 
+challenges in the modeling of coupled natural and human systems is the 
+dearth of techniques for creating agents that are able to learn from their
+past failures and successes, as well as compounded environmental and social
+uncertainties. This research has been focused on the integration of
+traditional agent-based modeling with machine learning methodologies for
+modeling agent decision-making and its recursive impacts on economic,
+environmental, and societal outcomes, feeding into the dynamic co-evolution of
+the coupled natural and human system state variables within simulated worlds,
+resulting in the development of two models incorporating and exploring the use
+of deep reinforcement machine learning as a driver for decision-policy making
+in agent-based models.
+
+The first of these models is a model of agricultural land use and the adoption
+of agricultural best-management practices by farmers in response to ecological
+and economic scenarios as a result of municipal regulation and variance in the
+occurrence of extreme weather events. The primary study area used for the
+model is a region of the Missiquoi Bay Area of Lake Champlain in Vermont,
+containing 480 farmer agents corresponding to agricultural land parcels within
+the region. A parameter sweep and sensitivity analysis on model
+hyperparameters was conducted to explore the effects of changes to agent
+calibration and training on agent decision-making and model performance.
+
+The second model expands upon the scope of the first, including forester
+agents and commercial and residential urban agents within a larger region of
+the Lake Champlain Basin of Vermont. Additionally, the impacts of agent
+decision-making take place on the simulated landscape, resulting in gradual
+land cover change over time. Land cover data from the United States Geological
+Survey's National Land Cover Database was used for initial parameterization,
+calibration, and training of the model (years 2001, 2006) and model testing
+(year 2011).
+
+Results suggest that with appropriate scoping and hyperparameter selection,
+the integration of deep reinforcement machine learning techniques into the
+development of agent-based models can increase predictive accuracy in the
+modeling of real-world phenomena; however, these gains must be weighed against
+the increased technical complexity of such a model and the associated risk of 
+introducing model error.
+
+\end{abstract}
+
+%\include{ack}
+
+\newpage
+
+\tableofcontents
+\newpage
+
+
+\listoffigures
+\newpage
+
+\listoftables
+\newpage
+
+\doublespacing
+
+\setcounter{page}{1}
+\pagenumbering{arabic}
+\include{chapter/LitReview.tex}
+\include{chapter/Farm-Model.tex}
+\include{chapter/Land-Model.tex}
+
+\newpage
+
+\setstretch{1.0}
+\nocite{*}
+\bibliography{bibfile}
+\bibliographystyle{unsrt}
+
+\addtocontents{toc}{\protect\setcounter{tocdepth}{1}}
+\appendix
+%\include{appendix/A-Farm-Model-Specs}
+%\include{appendix/B-Land-Model-Specs}
+%\include{appendix/Code-Listings}
+%\include{appendix/Full-Results}
+
+\end{document} 
