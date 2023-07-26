@@ -1,5 +1,5 @@
-TEX=pdflatex
-TEXFLAGS=-file-line-error -halt-on-error -interaction=batchmode
+TEXFLAGS=-file-line-error -halt-on-error #-interaction=batchmode
+TEX=pdflatex $(TEXFLAGS)
 BIB=bibtex
 CHAPTER_SOURCES=chapter/*.tex
 APPENDIX_SOURCES=appendix/*.tex

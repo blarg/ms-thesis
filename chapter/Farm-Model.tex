@@ -1,31 +1,74 @@
 \chapter{Machine Learning in Multi-Agent Systems}
-\label{chap:farm}
+\label{cha:farm}
 
 One of the outstanding challenges in ABMs of coupled natural and human systems 
 concerns the lack of ABMs to simulate agents with the ability to learn from 
 their past failures or successes and environmental and social uncertainties.
 \cite{sert2020segregation}
 
+In this chapter, a method of integrating machine learning into ABMs is
+resented as a potential solution to this problem using
+a modeling methodology incorporating elements of dee reinforcement machine
+learning with classical ABM techniques.
+This methodology is then applied to a simple ABM of a coupled natural and human
+system.
+The results of this applicaption are then discussed.
+
 \section{Methodology}
 \label{sec:farm_methods}
 
-\subsection{Problem Definition}
-\label{subsec:farm_methods_problem}
-
 \subsection{Modeling Approach}
-\label{subsec:farm_methods_approach}
+\label{subsec:farm_methods_aroach}
 
-The deep reinforcement machine learning methods being used in this model are
-based on the deep q-learning methods developed by Hasselt, Guez, and
-Silver\cite{ddqn16}, incorporating some of the alterations to action replay
+The dee reinforcement machine learning methods being used in this model are
+based on the dee q-learning methods developed by Hasselt, Guez, and
+Silver\cite{ddqn16}, incorporating some of the alterations to action relay
 and learning convergence as described in the rainbow algorithm developed by
-Hesel et al.\cite{rainbow18}
+Hesel et al.\cite{rainbow18} and integrating the episodic training structure
+into the runtime execution of an agent-based model.
+
+In this regard, each agent has two aired actor-critic neural network
+architectures --- one air, which is used for `active' learning,
+and a `target' air which is used for passive learning.
+The active air is used to drive agent decision-making within the
+current simulated model environment in any given time-step.
+The target air is updated periodically with the weights of the active
+network.
+This transfer learning is done to prevent the network from overfitting 
+to circumstance and to prevent the networks from diverging during training.
+
+Within each air, the actor network ($\mu$) is responsible for selecting the
+next action to take given the current state of the agent and the critic
+network ($Q$) is responsible for estimating the value of the current state
+given the current state and action.
+The actor network is trained to maximize the value of the critic network,
+whereas the critic network is trained to minimize the difference between its
+estimated valuation for each state-action air with the valuation that
+would be consistent with the rewards received from past events.
+
+High-level diagrams of these architectures and how they interact with
+agent states, $s = \left(s_1, ..., s_{|s|}\right)$, 
+and actions, $a = \left(a_1, ..., a_{|a|}\right)$,
+as vectorized components to produce value estimations
+can be seen in Figure~\ref{fig:farm_ddqn}.
+
+\begin{figure}
+    \subcaptionbox{Actor-Critic Pair}
+    {\includegraphics[width=.46\textwidth]{figure/ddqn1}}
+    \hfill
+    \subcaptionbox{Active-Target Pair}
+    {\includegraphics[width=.46\textwidth]{figure/ddqn2}}
+    \caption{Diagram of (a) the actor-critic network layout 
+    and (b) the active-target transfer learning air used by
+    agents}
+    \label{fig:farm_ddqn}
+\end{figure}
 
 \subsection{Agent Decision-Making}
 \label{subsec:farm_methods_decisions}
 
 Agents in this model make decisions according to an internal decision-policy
-function $\pi(s)=a$ mapping the state of each agent to the potential actions 
+function $\i(s)=a$ mapping the state of each agent to the potential actions 
 that each agent can take.
 In this approach, the decision-policy function is being approximated by
 an artificial neural network (ANN), $\mu:S\rightarrow A$.
@@ -34,8 +77,12 @@ array of length $W_S$.
 The output of the ANN is a vector of length $W_A$ encoding the action that
 the ANN has decided the agent should take.
 
-\subsection{Agent Learning}
-\label{subsec:farm_methods_learning}
+Each time an agent needs to take an action,
+it will ass its current state through the network to generate an action.
+It will perform this action with some probability $1 - \epsilon$.
+With probability $\epsilon$, the agent will instead take a random action.
+This random action is used to encourage exploration of the state space
+and to prevent the agent from getting stuck in a local optimum.
 
 \subsection{Agent Memory}
 \label{subsec:farm_methods_memory}
@@ -45,13 +92,29 @@ a series of state transition records $(s_t,a_t,r_t,s_{t+1})$.
 These records are stored in a memory buffer $B$ of fixed length $N$.
 When the memory buffer is full, new records overwrite the oldest records in
 the buffer.
-The memory buffer is used to train the agent's decision-policy 
+The memory buffer is used to train the agent's decision-policy and valuation.
+
+Additionally,
+agents have a built-in `forgetfulness factor', $F$,
+which has been incorporated in an attempt to capture some of the behavior
+patterns of human actors with imperfect memory.
+This factor is a real number between 0 and 1 and is used to linearly scale the
+amount of noise that is introduced into the memory record as the record
+ages within a run.
+An agent with $F=0$ will have perfect recall of its entire state transition
+history, whereas an agent with $F=1$ will have perfect recall of its most
+recent state transition with actions taken in the distant past being
+completely forgotten (noise term of equal range as actual term).
+
+\subsection{Agent Learning}
+\label{subsec:farm_methods_learning}
+
 
 \section{Experimental Design}
-\label{sec:farm_exp}
+\label{sec:farm_ex}
 
 \subsection{Simulation Environment}
-\label{subsec:farm_exp_env}
+\label{subsec:farm_ex_env}
 
 In order to test this modeling methodology,
 an experimental agent-based model was developed to explore the behavior
@@ -61,7 +124,7 @@ The real-world basis for this model is a study area in the
 Missisquoi Bay Area of the Lake Champlain Basin of Vermont,
 and the model is designed to represent the agricultural decision-making
 processes of farmers in this area.
-In particular, decisions pertaining to land use practices and
+In articular, decisions pertaining to land use practices and
 the adoption or rejection of agricultural best management practices (BMPs)
 were studied.
 
@@ -69,33 +132,33 @@ The model was implemented using the FLAMEGPU framework (FLAMEGPU),
 which is an agent-based modeling framework that allows for the
 development of models that can be run on a GPU-device,
 and with CUDNN (CUDNN),
-a deep learning library for CUDA.
+a dee learning library for CUDA.
 These technologies were selected \textbf{EXPAND RATIONALE}
 
-\subsubsection{Agents}
-\label{subsubsec:farm_exp_agent}
+\subsection{Agents}
+\label{subsubsec:farm_ex_agent}
 
-There are two types of agents present in this model --- 480 farmer agents, 
+There are two types of agents resent in this model --- 480 farmer agents, 
 corresponding to the 480 agriculturally-zoned land parcels in the Missisquoi 
 Bay Area, 
 and a single regulatory agent.
 All agents in the model contain some internal information about their current 
 state and history, a set of state-transition memories used to learn from 
-experience, and a pair of neural networks used to drive agent decision-making. 
+experience, and a air of neural networks used to drive agent decision-making. 
 As the agents make decisions over time, they gradually learn the correlation 
-between the actions they take from each state using deep reinforcement machine 
+between the actions they take from each state using dee reinforcement machine 
 learning.
 
 The 480 farmer agents are used to model the behavior of agricultural land 
 managers within the study area. 
-These agents make annual decisions, once per time-step, 
+These agents make annual decisions, once er time-step, 
 about their farming practices, 
 including whether they should adjust their productivity in one of four 
 agricultural sectors (beef, dairy, corn, and hay) 
 and whether they should implement an agricultural best management practice 
 (BMP) to reduce phosphorus on their land.
 
-Conditions that factor in as components of a farmer agent's state include the 
+Conditions that factor in as comonents of a farmer agent's state include the 
 total land area the agent has devoted to cropland or pasture; 
 the productivity of the agent in each of the four modeled agricultural 
 industries along with their associated phosphorus byproduct productivity; 
@@ -117,10 +180,124 @@ extreme weather events in the region; and the aggregate profitability,
 phosphorus runoff, and storm loss across the last five time-steps for all 
 agents.
 
-\subsection{Hyperparameter Selection}
-\label{subsec:farm_exp_hyper}
+\subsubsection{Problem Space}
 
-A summary of model hyperparameters is listed in Table~\ref{tab:farm_exp_hyper}.
+The problem space for this model is the set of all possible states that the
+agents can be in and the set of all actions that can be taken from those
+states, detailed here.
+
+The state factors used in the decision-making of each agent are listed
+in Table~\ref{tab:farm_agents_states}.
+For the farmer agents, these break down into a few main groups:
+information about their own land cover,
+information about their productivity in the given time-step,
+a 5-year history of their own experiences,
+and historical information from their 5-nearest neighbors.
+
+\begin{table}
+    \centering
+    \caption{A summary of the state factors being used as input to the
+    agents' ANNs. Agents may have additional properties
+    (listed in Appendix~\ref{app:farm}); 
+    however, these are the ones that action selection 
+    is directly dependant on.}
+    \label{tab:farm_agents_states}
+    \begin{tabularx}{\linewidth}{XXl}
+        \emph{Farmer Agent} \\
+        \hline\hline
+        Group & Description & Detail \\
+        \hline
+        \textbf{Land Cover} & Cropland & Normalized Area (sq m) \\
+        & Pasture & Normalized Area (sq m) \\
+        \textbf{Productivity} & Corn & See \ref{app:farm} \\
+        & Hay \\
+        & Dairy \\
+        & Beef \\
+        \textbf{History (5-year)} & Extreme Event Record & Occurrence \\
+        & Financial Record & \ref{app:farm} \\
+        & BMP Adoption Record & \\
+        \textbf{Network Information} & Financials & Losses (1-year, 5-year) \\
+        & BMP Adoption & Usage (1-year, 5-year) \\
+        \hline \\[1.0em]
+        \emph{Regulator Agent} \\
+        \hline
+        \hline
+        Group & Description & \\
+        \hline
+        \textbf{Aggregate Data} & \multicolumn{2}{l}{BMP Adoption} \\
+        & Financials & Net Profits, Losses \\
+        & \multicolumn{2}{l}{P Runoff} \\
+        \textbf{History} & Extreme Event Record & 5-year, 15-year \\
+        & \multicolumn{2}{l}{BMP Adoption} \\
+        & Financials & Net Profits, Losses \\
+        & \multicolumn{2}{l}{P Runoff} \\
+        \hline
+    \end{tabularx}
+\end{table}
+
+The actions that the farmer agents can take are listed in
+Table~\ref{tab:farm_agents_actions}.
+These actions are divided into two groups:
+adjusting the productivity of the agent in a given agricultural sector,
+and adopting a BMP to reduce phosphorus runoff from the agent's land.
+
+The actions that the regulator agent can take are listed in
+Table~\ref{tab:farm_regulator_actions}.
+These actions are divided into three groups:
+adjusting the tax rate applied to the farmer agents,
+adjusting the subsidy given to farmer agents adopting a BMP,
+and adjusting the phosphorus runoff threshold at which a penalty is applied.
+
+\begin{table}
+    \caption{A summary of the action factors being used to drive agent
+    decision-making for both types of agent resent in the model.
+    Each group is an $n$-hot encoding set containing the subsequent
+    possible actions. A ~\ref{app:farm}}
+    \label{tab:farm_agents_actions}
+    \begin{tabularx}{0.9\linewidth}{lXc}
+        \emph{Farmer Agent} \\
+        \hline\hline
+        Group & Action & Reference Index \\
+        \hline
+        \textbf{BMP Usage} & Adopt BMP & $(0,0)$ \\
+        & Don't Adopt BMP & $(0,1)$ \\
+        \textbf{Corn Production} & Increase by $[0, S^+_c)$ & $(1,0)$ \\
+        & Maintain & $(1,1)$ \\
+        & Decrease by $[0, S^-_c]$ & $(1,2)$ \\
+        \textbf{Hay Production} & Increase by $[0, S^+_h]$ & $(2,0)$ \\
+        & Maintain & $(2,1)$ \\
+        & Decrease by $[0, S^-_h)$ & $(2,2)$ \\
+        \textbf{Dairy Production} & Increase by $[0, S^+_d)$ & $(3,0)$ \\
+        & Maintain & $(3,1)$ \\
+        & Decrease by $[0, S^-_d)$ & $(3,2)$ \\
+        \textbf{Beef Production} & Increase by $[0, S^+_b)$ & $(4,0)$ \\
+        & Maintain & $(4,1)$ \\
+        & Decrease $[0, S^-_b)$ & $(4,2)$ \\
+        \hline \\[1.0em]
+        \emph{Regulator Agent} \\
+        \hline
+        \hline
+        Group & Action & Reference Index \\
+        \hline
+        \textbf{Tax Rate} & Increase by $[0, T^+_g)$ & $(0, 0)$\\
+        & Decrease by $[0, T^-_g)$ & $(0, 1)$ \\
+        \textbf{BMP Subsidy} & Provide/Increase & $(1, 0)$ \\
+        & Remove/Decrease & $(1, 1)$ \\
+        \textbf{Phosphorous Threshold$\star$} & Scale & $2$ \\
+        \hline
+    \end{tabularx}
+\end{table}
+
+The reward value for farmer agents is a function of their net profitability
+in the given year, after accounting for any storm losses and BMP adoption
+costs.
+The reward value for the regulatory agent is to minimize the
+$R_r = \left<G_ * \sum_f{P} , G_l * \sum_f{loss}\right>$
+
+\subsection{Hyperparameter Selection}
+\label{subsec:farm_ex_hyer}
+
+A summary of model hyperparameters is listed in Table~\ref{tab:farm_ex_hyer}.
 
 Preliminary model runs were conducted to determine the optimal values for
 the hyperparameters for machine learning within the model.
@@ -136,17 +313,17 @@ the exploration rate at $\varepsilon = 0.1$,
 the discount factor at $\gamma = 0.99$,
 the learning transfer rate at $\tau = 0.001$,
 the number of steps within a training episode at $N = 40$,
-the replay memory size at $M = 10000$.
+the relay memory size at $M = 10000$.
 
-A summary of the final model hyperparameters are listed in
-Table~\ref{tab:farm_exp_hyper}.
-Network-specific parameters are listed in Table~\ref{tab:farm_exp_nets}.
+A summary of the final model hyerparameters are listed in
+Table~\ref{tab:farm_ex_hyer}.
+Network-specific parameters are listed in Table~\ref{tab:farm_ex_nets}.
 
 \begin{table}
 \centering
 \caption{Hyperparameters and associated values with source or rationale
     for the agricultural land use model}
-\label{tab:farm_exp_hyper}
+\label{tab:farm_ex_hyer}
 \begin{tabular}{lll}
 \hline
 Parameter & Value & Source/Rationale \\
@@ -155,11 +332,11 @@ Parameter & Value & Source/Rationale \\
     Exploration Rate ($\varepsilon$) & 0.1 & \\
     Discount Factor ($\gamma$) & 0.99 & \\
     Transfer Rate ($\tau$) & 0.001 & cite \emph{Transfer learning} \\
-    Replay Memory Size ($M$) & 10000 & \\
+    Relay Memory Size ($M$) & 10000 & \\
     Batch Size ($B$) & 32 & \cite{ddqn16} \\
 %    Target Network Update Frequency ($f$) & & \\
     Number of Episodes ($N$) & 1000 & Testing \textbf{Expand} \\
-    Number of Steps per Episode ($T$) & 40 
+    Number of Steps er Episode ($T$) & 40 
     & Econ model limitations \textbf{Expand} \\
 \hline
 \end{tabular}
@@ -172,7 +349,7 @@ land use model, where the $\mu_a$ and $Q_a$ columns correspond to the values
 for the agricultural agents' networks and $\mu_r$ and $Q_r$ 
 correspond to the values for the regulatory agent networks
 \textbf{Include bias line?}}
-\label{tab:farm_exp_nets}
+\label{tab:farm_ex_nets}
 \begin{tabular}{lllll}
     \hline
     Parameter & $\mu_a$ & $Q_a$ & $\mu_r$ & $Q_r$ \\
@@ -190,15 +367,15 @@ correspond to the values for the regulatory agent networks
 \end{table}
 
 \subsection{Experimental Setup}
-\label{subsec:farm_exp_setup}
+\label{subsec:farm_ex_setu}
 
 The model was run for a variety of scenarios.
 All scenarios tested the variables $BMP_e$, $\Delta EE$,
 and $g$.
 Then, there were two classes of test:
-tests with agents with uniform memory accuracy (Table~\ref{tab:farm_exp_par})
+tests with agents with uniform memory accuracy (Table~\ref{tab:farm_ex_ar})
 and tests with agents with heterogeneous memory accuracy
-(Table~\ref{tab:farm_exp_mix}).
+(Table~\ref{tab:farm_ex_mix}).
 
 BMP Efficacy ($BMP_e$) was varied from 0.0 to 1.0 in increments of 0.1.
 This parameter represents the effectiveness of BMPs in reducing nutrient
@@ -236,7 +413,7 @@ and all other agents ($1-P$) had accuracy $F=0$.
 \begin{table}
 \centering
 \caption{Table listing experimental parameters for uniform population runs}
-\label{tab:farm_exp_par}
+\label{tab:farm_ex_ar}
 \begin{tabular}{ll}
 \hline
 Variable & Values \\
@@ -254,7 +431,7 @@ Recall Accuracy ($F'$) & 0, 0.25, 0.5, 0.75, 1 \\
 \begin{table}
 \centering
 \caption{Table listing experimental parameters for mixed population runs}
-\label{tab:farm_exp_mix}
+\label{tab:farm_ex_mix}
 \begin{tabular}{ll}
 \hline
 Variable & Values \\
@@ -280,7 +457,7 @@ agents were trained for 1000 training episodes.
 If more than 10\%  of the agents ($n=48$) in the model failed to converge
 to a stable policy within 1000 training episodes, the model was discarded 
 and retrained; however, this occurred in less than 2\% of model runs.
-A plot showing the distribution of number of agents which converged
+A lot showing the distribution of number of agents which converged
 across model parameterizations is shown in Figure~\ref{fig:farm_sfc}.
 
 \begin{figure}
@@ -291,12 +468,34 @@ across model parameterizations is shown in Figure~\ref{fig:farm_sfc}.
 \label{fig:farm_sfc}
 \end{figure}
 
+In this training,
+an agent's networks were considered to have converged if after 50
+initial training episodes, 
+the net change in the weights of the network during a transfer learning step
+was less than $10^{-5}$.
+This threshold was chosen to be small enough to ensure that the networks
+had reached some stable policy, but large enough to avoid overfitting.
+
 Models which were successfully trained and passed through this screening
 were then run for 40 testing runs.
 
 \subsection{Agent Behavior}
 \label{subsec:farm_results_agents}
 
+\begin{figure}
+    \subcaptionbox{Initial State (y=2001)}{
+        \includegraphics[width=0.3\linewidth]{figure/farm-sample-2001}
+    }
+    \subcaptionbox{End State (y=2040, g=0.05)}{
+        \includegraphics[width=0.3\linewidth]{figure/farm-sample-2040-g05}
+    }
+    \caption{Sample model output showing the change in BMP adoption likelihood
+    from a characteristic initial model state (a) to a characteristic end state (b) for a model run with a moderate regulatory change threshold ($g=0.05$).
+    The color of each dot represents the likelihood that the agent will adopt
+    BMPs, with green indicating a high likelihood and red indicating a low
+    likelihood.}
+    \label{fig:farm_mas}
+\end{figure}
 \subsubsection{Uniform Population Runs}
 
 For model parameterizations with uniform agent populations,
