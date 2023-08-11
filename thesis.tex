@@ -27,14 +27,12 @@
 \usepackage[raggedright]{titlesec}
 \usepackage{tabularx}
 \usepackage{subcaption}
+\usepackage{siunitx}
+\usepackage{algpseudocode}
+\sisetup{output-exponent-marker=\ensuremath{\mathrm{e}}} 
+%\usepackage[none]{hyphenat}
 
 \newcommand{\rcell}[1]{\multicolumn{1}{r}{#1}}
-
-%\titleformat{\chapter}
-%  {\bf\huge\sc}
-%  {\chaptertitlename\ \thechapter}
-%  {10pt}
-%  {\bf\huge\sc}
 
 % ==================================
 % Set up title page
@@ -46,12 +44,9 @@
 \thesis
 \masterscience
 \cs
-%\gradyear{2014}        %%The year in which the degree will be conferred
 \auggrad
 \advisor{Asim Zia, Ph.D.}
 \chair{Scott Hamshaw, Ph.D.}
-%\readerone{Safwan Wshah, Ph.D.}
-%\readertwo{\ }
 \readerone{Donna Rizzo, Ph.D.}
 \readertwo{Safwan Wshah, Ph.D.}
 \dean{Cynthia J. Forehand, Ph.D.}
@@ -59,7 +54,6 @@
 \begin{document}
 
 \maketitle
-%\makeacceptance
 \pagenumbering{roman}
 
 \begin{abstract}
@@ -125,9 +119,9 @@ introducing model error.
 
 \setcounter{page}{1}
 \pagenumbering{arabic}
-\include{chapter/LitReview.tex}
-\include{chapter/Farm-Model.tex}
-\include{chapter/Land-Model.tex}
+\include{chapter/LitReview}
+\include{chapter/Farm-Model}
+\include{chapter/Land-Model}
 
 \newpage
 
@@ -138,6 +132,8 @@ introducing model error.
 
 \addtocontents{toc}{\protect\setcounter{tocdepth}{1}}
 \appendix
-\include{appendix/Farm-ODD.tex}
+\include{appendix/Farm-ODD}
+\include{appendix/Land-ODD}
+\include{appendix/Full-Results}
 
 \end{document} 

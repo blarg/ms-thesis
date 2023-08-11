@@ -1,11 +1,5 @@
 \chapter{Review of Related Work}
 
-\textbf{TODO}
-\begin{itemize}
-\item Additional to work into this section: Sutton and Barto (06); GRLA; Deep SARSA and Q (XU, CAO, CHEN et al, 2018); LOT of ABM Stuff
-\item Make more readable and less jumpy
-\end{itemize}
-
 The use of agent-based models to study the behavior of human agents in complex 
 systems primarily dates back to the early 1970s, with some of the first formal 
 models being Schelling's dynamic model of segregation
@@ -43,7 +37,7 @@ For the majority of this project, the behavior of agents is going to be
 defined by artificial neural networks trained using deep reinforcement 
 machine learning. 
 Agent-based systems have previously incorporated reinforcement learning methods 
-like SARSA and temporal difference learning (---, 1990); however, this project is one of the first to embed this type of neural network into agents within such a large-scale and heterogeneous model.
+like SARSA and temporal difference learning; however, this project is one of the first to embed this type of neural network into agents within such a large-scale and heterogeneous model.
 
 This specific application of reinforcement machine learning may be new, 
 but its study is almost as old as the field of modern computer science. 
@@ -67,29 +61,28 @@ notably the development of temporal difference learning as described in
 Samuel's \emph{Some Studies in Machine Learning Using the Game of Checkers}
 \cite{samuel1959some}.
 
-Progress in the study of reinforcement machine learning saw little development over the following decade; however, a resurgence of interest in artificial intelligence during the 1970s revitalized the field and resulted in many new algorithms. Some of the more influential of these algorithms being the temporal difference learning algorithm (Sutton, 1988), the q-learning algorithm (Watkins, 1989), and the related SARSA algorithm (Rummery \& Niranjan, 1994) for decision-policy making. 
+Progress in the study of reinforcement machine learning saw little development over the following decade; however, a resurgence of interest in artificial intelligence during the 1970s revitalized the field and resulted in many new algorithms. Some of the more influential of these algorithms being the temporal difference learning algorithm \cite{sutton1988learning}, the q-learning algorithm \cite{watkins1989learning}, and the related SARSA algorithm \cite{rummery1994line} for decision-policy making. 
 
 Notably, Sutton's temporal difference learning algorithm category 
 $TD(\lambda)$, 
 where the historical discounting factor $0\le\lambda\le 1$, 
 is the basis for many of the techniques used in this project. 
-Dayan (1992) proved that Sutton's temporal difference learning algorithm 
+Dayan proved that Sutton's temporal difference learning algorithm 
 family converges for discrete problem spaces \cite{dayan92}; 
 however, the problem remains undecidable for continuous-valued problems, 
 so consideration must be taken for model hyperparameter selection.
 
-Alongside these developments in reinforcement learning, advancements in computing machinery and the production and training of artificial neural networks helped bypass many of the previous limiting factors in the study of artificial intelligence. For example, the best method to correct neural network output had been an open question since their first use. But, the development of algorithms for the backpropagation of network error revolutionized the field (Rumelhart, Hinton, \& Williams, 1986). These methods allowed for the creation of networks that were more intricate and generalizable than ever before, and their increased performance made them a standard with derivatives still used today.
+Alongside these developments in reinforcement learning, advancements in computing machinery and the production and training of artificial neural networks helped bypass many of the previous limiting factors in the study of artificial intelligence. For example, the best method to correct neural network output had been an open question since their first use. But, the development of algorithms for the backpropagation of network error revolutionized the field \cite{rumelhart1986learning}. These methods allowed for the creation of networks that were more intricate and generalizable than ever before, and their increased performance made them a standard with derivatives still used today.
 
-Entering the mid-to-late 1990s, development in artificial intelligence and reinforcement machine learning again began to stall. Problems like vanishing and exploding gradients within the hidden layers of networks, as well as physical limitations on the size and speed of machine memory, made the use and application of deep, large-scale neural networks infeasible for many potential use cases. Progress in the field remained incremental until the mid-2010s when advancements in GPU-enabled computing allowed for faster, more powerful, and more affordable high-performance computing to enter the mainstream. (---)
+Entering the mid-to-late 1990s, development in artificial intelligence and reinforcement machine learning again began to stall. Problems like vanishing and exploding gradients within the hidden layers of networks, as well as physical limitations on the size and speed of machine memory, made the use and application of deep, large-scale neural networks infeasible for many potential use cases. Progress in the field remained incremental until the mid-2010s when advancements in GPU-enabled computing allowed for faster, more powerful, and more affordable high-performance computing to enter the mainstream.
 
-With this improvement in computing capabilities came several new reinforcement learning methods, including deep reinforcement learning, which makes use of the ability of artificial neural networks to perform function approximation to make the decision-policy for a problem space. By using deep neural networks in this way, the decision-policy table q-learning algorithms use to value decision-making in discrete problem spaces can be replaced with a neural network with a deep q-network architecture for decision-policy making in more continuous problem spaces (DQN).
-
-DQN is a suitable algorithm for many reinforcement learning tasks, but it's not without its flaws. Overcoming its propensity towards biasing itself from outlier data early in training can be incredibly difficult. (Fujimoto, Hoof, \& Meer, 2018)
+With this improvement in computing capabilities came several new reinforcement learning methods, including deep reinforcement learning, which makes use of the ability of artificial neural networks to perform function approximation to make the decision-policy for a problem space. By using deep neural networks in this way, the decision-policy table q-learning algorithms use to value decision-making in discrete problem spaces can be replaced with a neural network with a deep q-network architecture for decision-policy making in more continuous problem spaces.
+Deep Q-Network learning (DQN) is a suitable algorithm for many reinforcement learning tasks, but it's not without its flaws. Overcoming its propensity towards biasing itself from outlier data early in training can be incredibly difficult. \cite{fujimoto2018addressing}
 
 To combat some of the difficulties that can arise from using DQN, 
 several additions and variations to the algorithm have been developed. 
-The addition of policy gradient (O'Donoghue, Munos, Kavukcuglu, \& Mnih, 2017) 
-and action replay (Zhao, Wang, Shao, \& Zhu, 2016) 
+The addition of policy gradient \cite{nweke2018deep}
+and action replay \cite{zhao2016deep} 
 to the algorithm can help to smooth the learning curve and encourage 
 additional exploration of the problem space. 
 Additionally, 

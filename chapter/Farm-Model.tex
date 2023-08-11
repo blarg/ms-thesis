@@ -1,18 +1,23 @@
 \chapter{Machine Learning in Multi-Agent Systems}
-\label{cha:farm}
+\label{chap:farm}
 
-One of the outstanding challenges in ABMs of coupled natural and human systems 
-concerns the lack of ABMs to simulate agents with the ability to learn from 
-their past failures or successes and environmental and social uncertainties.
-\cite{sert2020segregation}
+\newcommand{\flame}[0]{FLAMEGPU}
+\newcommand{\norm}[0]{\mathcal{N}}
+\newcommand{\argmax}[2]{\text{argmax}_{#1}\left(#2\right)}
+
+Traditional ABMs often rely on rule-based or probabilistic decision-making strategies, which sometimes fail to capture higher-order decision-making logic, including reasoning from past experience, dynamic decision-making under uncertainty, and understanding of implicit or emergent external reward/incentive structures.
+In this regard, one of the outstanding challenges in ABMs of coupled 
+natural and human systems concerns the lack of ABMs that can simulate agents
+with the ability to learn from their past failures or successes 
+and environmental and social uncertainties.~\cite{sert2020segregation}
 
 In this chapter, a method of integrating machine learning into ABMs is
-resented as a potential solution to this problem using
-a modeling methodology incorporating elements of dee reinforcement machine
+presented as a potential solution to this problem using
+a modeling methodology incorporating elements of deep reinforcement machine
 learning with classical ABM techniques.
 This methodology is then applied to a simple ABM of a coupled natural and human
 system.
-The results of this applicaption are then discussed.
+The results of this application are then discussed.
 
 \section{Methodology}
 \label{sec:farm_methods}
@@ -20,24 +25,25 @@ The results of this applicaption are then discussed.
 \subsection{Modeling Approach}
 \label{subsec:farm_methods_aroach}
 
-The dee reinforcement machine learning methods being used in this model are
-based on the dee q-learning methods developed by Hasselt, Guez, and
-Silver\cite{ddqn16}, incorporating some of the alterations to action relay
+The deep reinforcement machine learning techniques that are being incorporated
+into this modeling methodology are an extension of the deep q-learning methods 
+developed by Hasselt, Guez, and Silver\cite{ddqn16}, 
+incorporating some of the alterations to action relay
 and learning convergence as described in the rainbow algorithm developed by
 Hesel et al.\cite{rainbow18} and integrating the episodic training structure
 into the runtime execution of an agent-based model.
 
-In this regard, each agent has two aired actor-critic neural network
-architectures --- one air, which is used for `active' learning,
-and a `target' air which is used for passive learning.
-The active air is used to drive agent decision-making within the
+In this regard, each agent has two paired actor-critic neural network
+architectures --- one pair, which is used for `active' learning,
+and a `target' pair which is used for passive learning.
+The active pair is used to drive agent decision-making within the
 current simulated model environment in any given time-step.
-The target air is updated periodically with the weights of the active
-network.
+The target pair is updated periodically with the weights of the active
+pair.
 This transfer learning is done to prevent the network from overfitting 
 to circumstance and to prevent the networks from diverging during training.
 
-Within each air, the actor network ($\mu$) is responsible for selecting the
+Within each pair, the actor network ($\mu$) is responsible for selecting the
 next action to take given the current state of the agent and the critic
 network ($Q$) is responsible for estimating the value of the current state
 given the current state and action.
@@ -67,8 +73,11 @@ can be seen in Figure~\ref{fig:farm_ddqn}.
 \subsection{Agent Decision-Making}
 \label{subsec:farm_methods_decisions}
 
-Agents in this model make decisions according to an internal decision-policy
-function $\i(s)=a$ mapping the state of each agent to the potential actions 
+In traditional agent-based models, agents make decisions according to
+rule-based decision-policies or probabilistic methods.
+In integrating machine learning,
+agents instead make decisions according to an internal decision-policy
+function $\pi(s)=a$ mapping the state of each agent to the potential actions 
 that each agent can take.
 In this approach, the decision-policy function is being approximated by
 an artificial neural network (ANN), $\mu:S\rightarrow A$.
@@ -78,11 +87,62 @@ The output of the ANN is a vector of length $W_A$ encoding the action that
 the ANN has decided the agent should take.
 
 Each time an agent needs to take an action,
-it will ass its current state through the network to generate an action.
-It will perform this action with some probability $1 - \epsilon$.
+it passes its current state through the network to generate an action.
+It performs this action with some probability $1 - \epsilon$.
 With probability $\epsilon$, the agent will instead take a random action.
 This random action is used to encourage exploration of the state space
 and to prevent the agent from getting stuck in a local optimum.
+
+\subsection{Agent Learning}
+\label{subsec:farm_methods_learning}
+
+The policy evaluation network, $Q$, is updated using the Q-learning
+update function (Eq~\ref{eq:q_update}), where
+$S_t$ and $A_t$ are the state and selected action at time $t$,
+$\alpha$ is the learning rate,
+and the target $Y_t^{DDQN}$ is defined as a function of the
+state, action, and received reward value $R_t$ (Eq~\ref{eq:q_target}).
+
+\begin{equation}
+\label{eq:q_update}
+    \forall \theta \in \Theta_Q \left[
+    \theta_{t+1} = \theta_t + \alpha\left(
+    Y_t^{DDQN} - Q(S_t, A_t)
+    \right)
+    \nabla_{\theta_t}Q(S_t,A_t)
+    \right]
+\end{equation}
+
+\begin{equation}
+\label{eq:q_target}
+    Y^{DDQN} = 
+        R_{t+1}
+        + \gamma Q'\left(S_{t+1},\argmax{a}{Q(S_{t+1}, a}\right)
+\end{equation}
+
+Because the networks in this system update are training
+using experience replay, the argmax term present in 
+Equation~\ref{eq:q_target} is replaced with the output of the 
+target actor~$\mu'(S_{t+1})$ as part of a batch update of 
+batch size~$B$.
+The actor network~$\mu$ also updates from the selected
+experience batch, using policy gradient with regard to
+the resulting valuations provided by $Q$.
+
+The target architecture initially has the same weights as
+the main architecture, at the end of each training episode,
+weights from the main architecture are copied to the target
+architecture according to the transfer learning function
+(Eq~\ref{eq:tr}).
+
+\begin{equation}
+    \label{eq:tr}
+    \forall\theta_i'\in\Theta'\left[
+        \theta_i'\leftarrow\tau\theta_i+\left(1-\tau\right)\theta_i',
+        \tau \ll 1
+    \right]
+\end{equation}
+
 
 \subsection{Agent Memory}
 \label{subsec:farm_methods_memory}
@@ -106,117 +166,333 @@ history, whereas an agent with $F=1$ will have perfect recall of its most
 recent state transition with actions taken in the distant past being
 completely forgotten (noise term of equal range as actual term).
 
-\subsection{Agent Learning}
-\label{subsec:farm_methods_learning}
+\begin{algorithmic}
+\ForAll{agents in each time step}
+\State With probability $\epsilon$ select random action $A_t$
+\State otherwise select action $A_t \gets \mu(S_t)$
+\State Execute $A_t$ and observe reward $R_t$ and next state $S_{t+1}$
+\State Push transition record to memory $M[m]\gets (S_t, A_t, R_t, S_{t+1})$
+\State Select random minibatch $B$ of $N$ transitions from memory $M$
+\If{Agent is forgetful, $F > 0$}
+\State Introduce random noise to transition record proportional to the
+\State temporal distance to transition $(m-t)$ and agent forgetfulness $F$
+\EndIf
+\State Perform Q-learning update via action replay
+\State Perform $\mu$ update via policy gradient
+\EndFor
+\end{algorithmic}
 
 
 \section{Experimental Design}
 \label{sec:farm_ex}
 
-\subsection{Simulation Environment}
-\label{subsec:farm_ex_env}
+\subsection{Model Overview}
 
-In order to test this modeling methodology,
-an experimental agent-based model was developed to explore the behavior
-of a multi-agent system of agricultural decision-makers
-and how that behavior may change in response to various external stimuli.
+In order to test this modeling methodology for the integration
+of deep reinforcement machine learning into an agent-based model,
+an experimental ABM was developed.
+This ABM is a model of a multi-agent of agricultural decision-makers
+and how their behavior may change in response to external stimuli.
 The real-world basis for this model is a study area in the
 Missisquoi Bay Area of the Lake Champlain Basin of Vermont,
 and the model is designed to represent the agricultural decision-making
-processes of farmers in this area.
-In articular, decisions pertaining to land use practices and
-the adoption or rejection of agricultural best management practices (BMPs)
-were studied.
+processes of farmers in this area ---
+in particular, decisions pertaining to agricultural productivity
+and the adoption or rejection of agricultural best management practices~(BMPs).
 
-The model was implemented using the FLAMEGPU framework (FLAMEGPU),
-which is an agent-based modeling framework that allows for the
-development of models that can be run on a GPU-device,
-and with CUDNN (CUDNN),
-a dee learning library for CUDA.
-These technologies were selected \textbf{EXPAND RATIONALE}
+\subsubsection{Agents}
 
-\subsection{Agents}
-\label{subsubsec:farm_ex_agent}
-
-There are two types of agents resent in this model --- 480 farmer agents, 
-corresponding to the 480 agriculturally-zoned land parcels in the Missisquoi 
-Bay Area, 
+There are two types of agents present in this model --- 480 farmer agents, 
+corresponding to the 480 agriculturally-zoned land parcels in the
+Missisquoi Bay Area, 
 and a single regulatory agent.
-All agents in the model contain some internal information about their current 
-state and history, a set of state-transition memories used to learn from 
-experience, and a air of neural networks used to drive agent decision-making. 
-As the agents make decisions over time, they gradually learn the correlation 
-between the actions they take from each state using dee reinforcement machine 
+All agents in the model contain some internal information 
+about their current state and history,
+a set of state-transition memories used to learn from experience,
+and a set of neural networks used to drive agent decision-making. 
+As the agents make decisions over time, 
+they gradually learn the correlation between 
+the actions they take from each state using deep reinforcement machine 
 learning.
 
-The 480 farmer agents are used to model the behavior of agricultural land 
-managers within the study area. 
-These agents make annual decisions, once er time-step, 
-about their farming practices, 
-including whether they should adjust their productivity in one of four 
-agricultural sectors (beef, dairy, corn, and hay) 
-and whether they should implement an agricultural best management practice 
-(BMP) to reduce phosphorus on their land.
+The 480 agricultural agents model the behavior of farmers, herders,
+and other kinds of agricultural land managers within the study area.
+They make annual decisions about their farming practices, 
+including whether they should change production in 
+one of the four modeled agricultural industries 
+(beef, dairy, corn, and hay) and whether they should implement 
+an agricultural best management practice (BMP) to reduce 
+phosphorus runoff on their land.
 
-Conditions that factor in as comonents of a farmer agent's state include the 
-total land area the agent has devoted to cropland or pasture; 
+The state properties and variables that make up each agricultural agent
+are listed in Table~\ref{tab:farm_state_farm}.
+The initialization of these values is detailed in
+Section~\ref{sec:farmer_init}.
+
+Conditions that factor in as components of a farmer agent's state 
+include the total land area the agent has devoted to cropland or pasture; 
 the productivity of the agent in each of the four modeled agricultural 
 industries along with their associated phosphorus byproduct productivity; 
-an n-year history of the farm's profitability, storm losses, and BMP usage; 
+an 5-year history of the farm's profitability, storm losses, and BMP usage; 
 and similar historical information from the agent's k-nearest neighboring
 farmer agents.
 
-The one municipal regulatory agent is used to model a municipal government or 
-regulatory agency's behavior managing agricultural practices on the landscape 
-and the local environment and the policies that guide them. 
-This agent acts more slowly than the agricultural agents, 
-once every five time-steps, and decides if/how it should modify its incentive 
-structure --- changing its taxation rate, the subsidization given to an agent 
-adopting a BMP, and the phosphorus runoff threshold at which a penalty is 
-applied.
-
-The municipal regulatory agent's state conditions include a history of 
-extreme weather events in the region; and the aggregate profitability, 
-phosphorus runoff, and storm loss across the last five time-steps for all 
-agents.
-
-\subsubsection{Problem Space}
-
-The problem space for this model is the set of all possible states that the
-agents can be in and the set of all actions that can be taken from those
-states, detailed here.
-
-The state factors used in the decision-making of each agent are listed
-in Table~\ref{tab:farm_agents_states}.
+This subset of state factors is summarized along with those of
+the regulatory agent in Table~\ref{tab:farm_agents_states}.
 For the farmer agents, these break down into a few main groups:
 information about their own land cover,
 information about their productivity in the given time-step,
 a 5-year history of their own experiences,
 and historical information from their 5-nearest neighbors.
 
+\begin{longtable}{lll}
+\caption{Table of the state properties of agricultural agents and their
+associated data type for agricultural agents in the agricultural model.} 
+\label{tab:farm_state_farm} \\
+\hline \hline
+Name & Description & Data Type \\
+\hline
+\endfirsthead
+\caption[]{(continued...)}\\
+\hline\hline
+Name & Description & Data Type \\
+\hline\endhead
+\hline
+\endfoot
+\hline
+\endlastfoot
+Agent ID & Unique identifier for this agent & \tt{uint} \\
+Agent Status && \tt{enum\{3\}} \\
+Land Parcel Data \\
+\multicolumn{1}{r}{Crop Land Area $A_c$} & Land devoted to growing crops (sq km) & \tt{float} \\
+\multicolumn{1}{r}{Pasture Land Area $A_p$} & Land devoted to grazing animals (sq km) & \tt{float} \\
+\multicolumn{1}{r}{Total Land Area $A_{tot}$} & Total land in parcel (sq km) & \tt{float} \\
+Productivity \\
+\multicolumn{1}{r}{Corn $p_c$} & Corn production factor & \tt{float} \\
+\multicolumn{1}{r}{Hay $p_h$} & Hay production factor & \tt{float} \\
+\multicolumn{1}{r}{Beef $p_b$} & Beef production factor & \tt{float} \\
+\multicolumn{1}{r}{Dairy $p_d$} & Dairy production factor & \tt{float} \\
+\multicolumn{1}{r}{Phosphorous $p_{p,x}$} & Phosphorus production factor & \tt{float} \\
+Cows Owned $C$ & Number of cows on farm & \tt{uint} \\
+Financial History \\
+\multicolumn{1}{r}{Real Net} & What was net profit over last 5 years & \tt{float[5]} \\
+\multicolumn{1}{r}{Expected Net} & What was expected profit for last 5 years
+& \tt{float[5]} \\
+Extreme Event History & Extreme event presence over past 5 years & \tt{uint[5]} \\
+BMP Usage History $B$& Did farm use BMP in last 5 years & \tt{bool[5]} \\
+Neighbors & References to neighboring agents & \tt{farmer*[5]} \\
+Neural Networks && \\
+\multicolumn{1}{r}{Actor Network $\mu$} & Network Weights & \tt{float[l][w]} \\
+\multicolumn{1}{r}{Critic Network $Q$} & Network Weights & \tt{float[L][W]} \\
+\multicolumn{1}{r}{Target Network $\mu'$} & Network Weights & \tt{float[l][w]} \\
+\multicolumn{1}{r}{Target Network $Q'$} & Network Weights & \tt{float[L][W]} \\
+Memory Bank && \tt{float[M*R]} \\
+Memory Buffer && \tt{float[B*R]} \\
+\end{longtable}
+
+The actions that the farmer agents can take are listed in
+Table~\ref{tab:farm_action_farm}.
+These actions are divided into two main categories:
+the action of choosing to adopt or not adopt a BMP for their farm,
+and adjusting the farm's productivity in one of the four agricultural
+sectors.
+
+\begin{longtable}{p{.4\textwidth}p{.5\textwidth}}
+\caption{A summary of the actions being select by the agricultural
+agents in the agricultural model.}
+\label{tab:farm_action_farm} \\ \hline \hline
+Group & Action \\ \hline
+\endfirsthead
+\hline\endfoot
+\hline\endlastfoot
+BMP Usage & Adopt BMP  \\
+    & Don't Adopt BMP  \\
+Corn Production & Increase by $[0, S^+_c)$  \\
+    & Maintain  \\
+    & Decrease by $[0, S^-_c)$  \\
+Hay Production & Increase by $[0, S^+_h)$  \\
+    & Maintain \\
+    & Decrease by $[0, S^-_h)$  \\
+Dairy Production & Increase by $[0, S^+_d)$  \\
+    & Maintain  \\
+    & Decrease by $[0, S^-_d)$  \\
+Beef Production & Increase by $[0, S^+_b)$  \\
+    & Maintain  \\
+    & Decrease $[0, S^-_b)$  \\
+\end{longtable}
+
+The production factors are a scalar component of production
+functions that have been calculated for the region and
+calibrated for the years 2001--2040.
+These functions are shown below for the production of corn (Eq~\ref{eq:fcorn}),
+hay (Eq~\ref{eq:fhay}),
+dairy (Eq~\ref{eq:fdairy}),
+and beef (Eq~\ref{eq:fbeef}),
+where $t$ is the modeled year.
+
+\begin{equation}
+\label{eq:fcorn}
+    P_c(t) = p_c * A_c^b * 11.433\log{t} - 86.826
+\end{equation}
+\begin{equation}
+\label{eq:fhay}
+    P_h(t) = p_h * A_c^b * \SI{1e-32}{}\exp{0.0358t}
+\end{equation}
+\begin{equation}
+\label{eq:fbeef}
+    P_b(t) = p_b * A_p^b * \SI{2e-20}{}\exp{0.0234t}
+\end{equation}
+\begin{equation}
+\label{eq:fdairy}
+    P_d(t) = p_d * A_p^b * \SI{2e-9}\exp{0.0114t}
+\end{equation}
+
+The productivity of the agent is modified by
+the application of the regulatory agent's regulations $G_1$ (Eq~\ref{eq:g1}) 
+and $G_2$ (Eq~\ref{eq:g2})
+and the amount of losses due to extreme weather events (Eq~\ref{eq:f_stormloss})
+as a function of whether the BMP was used and whether the number
+of extreme events that occurred within the given year exceeds the
+expected threshold from the weather submodel.
+
+\begin{equation}
+\label{eq:f_stormloss}
+\begin{array}{lllll}
+    S(B, EE) & = & 1, & EE < N & \\
+    S(B, EE) & = & 0.1, & EE \ge N, & \neg B \\
+    S(B, EE) & = & (0.1 + 0.9 B_e), & EE \ge N, & B \\
+\end{array} 
+\end{equation}
+
+The weather submodel would generate a number of rainfall events
+for the study area every model year, according to a distribution
+calibrated according to historical rainfall data for the region
+from the years 1920--1980.
+The number of weather events that were necessary to occur to
+be considered an extreme event year was determined by
+using peaks-over-threshold for the historical data. 
+
+The reward function used for training the policies of the
+farmer agents (Eq~\ref{eq:f_farmreward})
+is defined by the ratio of the squared 
+realized profits of a time-step (Eq~\ref{eq:f_netprofit})
+and the expected profits at that time-step (Eq~\ref{eq:f_expprofit}),
+translated from the range of all possible profits $(P_{\min}, P_{\max})$
+to the range $(-1, 1)$.
+
+\begin{equation}
+\label{eq:f_netprofit}
+    P_{net}(t) = \sum_x P_x(t) G_1(P_p, B, t) S(B, EE) + G_2(P_p, B, t)
+\end{equation}
+
+\begin{equation}
+\label{eq:f_expprofit}
+    P_{exp}(t) = \sum_x P_x(t) G_1(P_p, B, t) + G_2(P_p, B, t)
+\end{equation}
+
+\begin{equation}
+\label{eq:f_farmreward}
+    R_f(t) = 
+    \frac{P_{net}(t)^2}{P_{exp}(t)} 
+    : \left(P_{\min}, P_{\max}\right) \rightarrow \left(-1, 1\right)
+\end{equation}
+
+The one municipal regulatory agent is used to model a municipal 
+government or regulatory agency's behavior managing agricultural 
+practices on the landscape 
+and the local environment and the policies that guide them. 
+This agent acts more slowly than the agricultural agents, 
+once every five time-steps, and decides if/how it should modify 
+its incentive structure 
+--- changing its taxation rate, the subsidization given to an agent 
+adopting a BMP, and the phosphorus runoff threshold at which a penalty is 
+applied.
+The state properties of the regulatory agent are listed in
+Table~\ref{tab:farm_state_reg},
+and details on their initialization are included in
+Section~\ref{sec:regulator_init}.
+
+\begin{longtable}{lcll}
+\caption{Table of the state properties of the regulatory agent and their associated data type
+for the regulatory agent in the agricultural model.}
+\label{tab:farm_state_reg} \\
+\hline\hline
+Name && Description & Data Type \\
+\hline
+\endfirsthead
+\caption[]{(continued...)} \\
+\hline\hline
+Name && Description & Data Type \\
+\hline
+\endhead
+\hline
+\endfoot
+Agent ID && & \tt{uint} \\
+Aggregate Agent Data & & \\
+\multicolumn{1}{r}{BMP Adoption} && & \tt{float[15]} \\
+\multicolumn{1}{r}{Extreme Events} && & \tt{uint[15]} \\
+\multicolumn{1}{r}{Financial History} && & \tt{float[15]} \\
+\multicolumn{1}{r}{P Runoff History} && & \tt{float[15]} \\
+Regulation Change Limit & $g$ & & \tt{float} \\
+P Tax Rate & $T_p$ & & \tt{float} \\
+P Tax Threshold & $P_t$ & & \tt{float} \\
+BMP Subsidy Value & $S_b$ & & \tt{float} \\
+Neural Networks && \\
+\multicolumn{1}{r}{Actor Network} & $\mu$ & Network Weights & \tt{float[l][w]} \\
+\multicolumn{1}{r}{Critic Network} & $Q$ & Network Weights & \tt{float[L][W]} \\
+\multicolumn{1}{r}{Target Network} & $\mu'$ & Network Weights & \tt{float[l][w]} \\
+\multicolumn{1}{r}{Target Network} & $Q'$ & Network Weights & \tt{float[L][W]} \\
+Memory Bank &&& \tt{float[M*R]} \\
+Memory Buffer &&& \tt{float[B*R]} \\
+\end{longtable}
+
+The components of actions that the regulatory agent can take
+are listed in Table~\ref{tab:farm_action_reg}
+The phosphorus threshold adjustment action is notably implemented
+differently in that it is a single value which is having the sign taken
+to determine the direction of the adjustment.
+
+% TABLE -- ACTIONS
 \begin{table}
+    \caption{A summary of the action factors being used to drive agent
+    decision-making for both types of agent present in the model.}
+    \label{tab:farm_action_reg}
+    \begin{tabularx}{\linewidth}{lX}
+        \emph{Regulator Agent} \\
+        \hline
+        \hline
+        Group & Action  \\
+        \hline
+        Tax Rate & Increase by $[0, T^+_g)$ \\
+        & Decrease by $[0, T^-_g)$ \\
+        BMP Subsidy & Provide/Increase \\
+        & Remove/Decrease  \\
+        Phosphorous Threshold$\star$ & Scale  \\
+        \hline
+    \end{tabularx}
+\end{table}
+
+% TABLE -- STATES
+\begin{table}[p]
     \centering
     \caption{A summary of the state factors being used as input to the
-    agents' ANNs. Agents may have additional properties
-    (listed in Appendix~\ref{app:farm}); 
-    however, these are the ones that action selection 
-    is directly dependant on.}
+    agents' ANNs.}
     \label{tab:farm_agents_states}
     \begin{tabularx}{\linewidth}{XXl}
         \emph{Farmer Agent} \\
         \hline\hline
         Group & Description & Detail \\
         \hline
-        \textbf{Land Cover} & Cropland & Normalized Area (sq m) \\
+        Land Cover & Cropland & Normalized Area (sq m) \\
         & Pasture & Normalized Area (sq m) \\
-        \textbf{Productivity} & Corn & See \ref{app:farm} \\
+        Productivity & Corn & See \ref{app:farm} \\
         & Hay \\
         & Dairy \\
         & Beef \\
-        \textbf{History (5-year)} & Extreme Event Record & Occurrence \\
+        History (5-year) & Extreme Event Record & Occurrence \\
         & Financial Record & \ref{app:farm} \\
         & BMP Adoption Record & \\
-        \textbf{Network Information} & Financials & Losses (1-year, 5-year) \\
+        Network Information & Financials & Losses (1-year, 5-year) \\
         & BMP Adoption & Usage (1-year, 5-year) \\
         \hline \\[1.0em]
         \emph{Regulator Agent} \\
@@ -224,10 +500,10 @@ and historical information from their 5-nearest neighbors.
         \hline
         Group & Description & \\
         \hline
-        \textbf{Aggregate Data} & \multicolumn{2}{l}{BMP Adoption} \\
+        Aggregate Data & \multicolumn{2}{l}{BMP Adoption} \\
         & Financials & Net Profits, Losses \\
         & \multicolumn{2}{l}{P Runoff} \\
-        \textbf{History} & Extreme Event Record & 5-year, 15-year \\
+        History & Extreme Event Record & 5-year, 15-year \\
         & \multicolumn{2}{l}{BMP Adoption} \\
         & Financials & Net Profits, Losses \\
         & \multicolumn{2}{l}{P Runoff} \\
@@ -235,69 +511,91 @@ and historical information from their 5-nearest neighbors.
     \end{tabularx}
 \end{table}
 
-The actions that the farmer agents can take are listed in
-Table~\ref{tab:farm_agents_actions}.
-These actions are divided into two groups:
-adjusting the productivity of the agent in a given agricultural sector,
-and adopting a BMP to reduce phosphorus runoff from the agent's land.
 
-The actions that the regulator agent can take are listed in
-Table~\ref{tab:farm_regulator_actions}.
-These actions are divided into three groups:
-adjusting the tax rate applied to the farmer agents,
-adjusting the subsidy given to farmer agents adopting a BMP,
-and adjusting the phosphorus runoff threshold at which a penalty is applied.
+The results of taking these actions is a shift in the regulatory
+parameters of the system as shown in the set of equations below
+(Eq~\ref{eq:reg_shift}).
 
-\begin{table}
-    \caption{A summary of the action factors being used to drive agent
-    decision-making for both types of agent resent in the model.
-    Each group is an $n$-hot encoding set containing the subsequent
-    possible actions. A ~\ref{app:farm}}
-    \label{tab:farm_agents_actions}
-    \begin{tabularx}{0.9\linewidth}{lXc}
-        \emph{Farmer Agent} \\
-        \hline\hline
-        Group & Action & Reference Index \\
-        \hline
-        \textbf{BMP Usage} & Adopt BMP & $(0,0)$ \\
-        & Don't Adopt BMP & $(0,1)$ \\
-        \textbf{Corn Production} & Increase by $[0, S^+_c)$ & $(1,0)$ \\
-        & Maintain & $(1,1)$ \\
-        & Decrease by $[0, S^-_c]$ & $(1,2)$ \\
-        \textbf{Hay Production} & Increase by $[0, S^+_h]$ & $(2,0)$ \\
-        & Maintain & $(2,1)$ \\
-        & Decrease by $[0, S^-_h)$ & $(2,2)$ \\
-        \textbf{Dairy Production} & Increase by $[0, S^+_d)$ & $(3,0)$ \\
-        & Maintain & $(3,1)$ \\
-        & Decrease by $[0, S^-_d)$ & $(3,2)$ \\
-        \textbf{Beef Production} & Increase by $[0, S^+_b)$ & $(4,0)$ \\
-        & Maintain & $(4,1)$ \\
-        & Decrease $[0, S^-_b)$ & $(4,2)$ \\
-        \hline \\[1.0em]
-        \emph{Regulator Agent} \\
-        \hline
-        \hline
-        Group & Action & Reference Index \\
-        \hline
-        \textbf{Tax Rate} & Increase by $[0, T^+_g)$ & $(0, 0)$\\
-        & Decrease by $[0, T^-_g)$ & $(0, 1)$ \\
-        \textbf{BMP Subsidy} & Provide/Increase & $(1, 0)$ \\
-        & Remove/Decrease & $(1, 1)$ \\
-        \textbf{Phosphorous Threshold$\star$} & Scale & $2$ \\
-        \hline
-    \end{tabularx}
+\begin{equation}
+    \label{eq:reg_shift}
+    \begin{array}{l|lcl}
+    a_0 & T_{p, t+1} & = & T_{p, t} 
+        + \min_{\ge0}\left(T_p^+, \norm\left(\delta T_p, g+k\right)\right) \\
+    a_1 & T_{p, t+1} & = & T_{p, t} 
+        - \min_{\ge0}\left(T_p^-, \norm\left(\delta T_p, g+k\right)\right) \\
+    a_2 & S_{b, t+1} & = & T_{p, t} 
+        + \min_{\ge0}\left(S_b^+, \norm\left(\delta S_b, g+k\right)\right) \\
+    a_3 & S_{b, t+1} & = & T_{p, t} 
+        - \min_{\ge0}\left(S_b^-, \norm\left(\delta S_b, g+k\right)\right) \\
+    a_4 & P_{t,t+1} & = & P_{t, t} 
+        + \text{signum}\left(a_4\right) \\
+    \end{array}
+\end{equation}
+
+The parameter changes impact the incentive structures
+provided by the phosphorus taxing function, $G_1$,
+shown in Equation~\ref{eq:g1},
+and the BMP subsidization function, $G_2$,
+shown in Equation~\ref{eq:g2}.
+
+\begin{equation}
+\label{eq:g1}
+    G_1(P, B, t) = \left\{
+    \begin{array}{ll}
+        T_p & P_p \ge P_t \\
+        1 & P_p < P_t \\
+    \end{array}
+    \right.
+\end{equation}
+
+\begin{equation}
+\label{eq:g2}
+    G_2(P, B, t) = \left\{
+    \begin{array}{ll}
+    S_b & B \\
+    0 & \neg{B} \\
+    \end{array}
+    \right.
+\end{equation}
+
+The goal of the regulator agent is to minimize the aggregate phosphorous
+output and storm loss of all agricultural agents,
+$R_r = \left<W_p\sum_fP_{p,f}(t), W_l\sum_fl_f\right>$,
+where $W_p$ and $W_l$ are normalizing weights on the component
+inverse reward signals so that they vary along ranges of similar magnitude.
+
+The parameters for agent learning for both agent types are summarized in
+Table~\ref{tab:farmsanns}.
+
+% TABLE -- ANN PARAMS
+\begin{table}[h]
+\centering
+\caption{Network parameters for the ANNs used by agents in each class
+    for the land cover model}
+\label{tab:farmsanns}
+    \begin{tabular}{@{\extracolsep{4pt}}lp{.15\linewidth}>{\centering}p{.15\linewidth}>{\centering}p{.15\linewidth}cc@{}}
+\hline
+\hline
+\multirow{2}{*}{Parameter} 
+    & \multicolumn{2}{c}{Agricultural} 
+    & \multicolumn{2}{c}{Regulatory} \\
+    \cline{2-3}\cline{4-5}
+ & $\mu$ & $Q$ & $\mu$ & $Q$ \\
+\hline
+Input Nodes  & 15 & 32 & 10 & 15 \\
+Inner Layers  & 4 & 3 & 4 & 3  \\
+Inner Nodes  & 10 & 16 & 7 & 7 \\
+Output Nodes  & 17 & 1 & 5 & 1 \\ 
+Connectivity & \multicolumn{4}{c}{--- Full ---} \\
+Activation Function & \multicolumn{4}{c}{--- ReLU ---} \\
+Output Activation & 5-hot & Linear & 2-hot + 1-Signum & Linear \\
+\hline
+\end{tabular}
 \end{table}
 
-The reward value for farmer agents is a function of their net profitability
-in the given year, after accounting for any storm losses and BMP adoption
-costs.
-The reward value for the regulatory agent is to minimize the
-$R_r = \left<G_ * \sum_f{P} , G_l * \sum_f{loss}\right>$
 
-\subsection{Hyperparameter Selection}
-\label{subsec:farm_ex_hyer}
 
-A summary of model hyperparameters is listed in Table~\ref{tab:farm_ex_hyer}.
+\subsubsection{Model Hyperparameters}
 
 Preliminary model runs were conducted to determine the optimal values for
 the hyperparameters for machine learning within the model.
@@ -309,62 +607,32 @@ the number of neurons in each of those inner layer,
 the learning rate,
 and the batch size.
 The learning hyperparameters that were held constant were
-the exploration rate at $\varepsilon = 0.1$,
+the exploration rate at $\epsilon = 0.1$,
 the discount factor at $\gamma = 0.99$,
 the learning transfer rate at $\tau = 0.001$,
 the number of steps within a training episode at $N = 40$,
 the relay memory size at $M = 10000$.
 
-A summary of the final model hyerparameters are listed in
-Table~\ref{tab:farm_ex_hyer}.
-Network-specific parameters are listed in Table~\ref{tab:farm_ex_nets}.
+\begin{longtable}{lcll}
+\caption{Hyperparameters and their associated values with source or
+rationale, if applicable, for the agricultural land-use model.}
+\label{tab:farm_hyper} \\ \hline \hline
+Parameter && Value & Source/Rationale \\ \hline
+\endfirsthead
+\caption[]{(continued...)}\\ \hline \hline
+Parameter && Value & Source/Rationale \\ \hline
+\endhead
+\hline\endfoot
+Learning Rate & $\alpha$ & 0.00025 & \\
+Exploration Rate & $\epsilon$ & 0.1 & \\
+Discount Factor & $\gamma$ & 0.99 & \\
+Transfer Rate & $\tau$ & 0.001 & \cite{ddqn16} \\
+Relay Memory Size & $M$ & 10000 & \cite{ddqn16} \\
+Number of Episodes & $N$ & 1000 & \\
+Number of Steps per Episode & $T$ & 40 & Economic production function limitation \\
+\end{longtable}
 
-\begin{table}
-\centering
-\caption{Hyperparameters and associated values with source or rationale
-    for the agricultural land use model}
-\label{tab:farm_ex_hyer}
-\begin{tabular}{lll}
-\hline
-Parameter & Value & Source/Rationale \\
-\hline
-    Learning Rate ($\alpha$) & 0.00025 & \\
-    Exploration Rate ($\varepsilon$) & 0.1 & \\
-    Discount Factor ($\gamma$) & 0.99 & \\
-    Transfer Rate ($\tau$) & 0.001 & cite \emph{Transfer learning} \\
-    Relay Memory Size ($M$) & 10000 & \\
-    Batch Size ($B$) & 32 & \cite{ddqn16} \\
-%    Target Network Update Frequency ($f$) & & \\
-    Number of Episodes ($N$) & 1000 & Testing \textbf{Expand} \\
-    Number of Steps er Episode ($T$) & 40 
-    & Econ model limitations \textbf{Expand} \\
-\hline
-\end{tabular}
-\end{table}
 
-\begin{table}
-\centering
-\caption{Network parameters for the ANNs used by the agents in the agricultural
-land use model, where the $\mu_a$ and $Q_a$ columns correspond to the values
-for the agricultural agents' networks and $\mu_r$ and $Q_r$ 
-correspond to the values for the regulatory agent networks
-\textbf{Include bias line?}}
-\label{tab:farm_ex_nets}
-\begin{tabular}{lllll}
-    \hline
-    Parameter & $\mu_a$ & $Q_a$ & $\mu_r$ & $Q_r$ \\
-    \hline
-    Input Nodes & 15 & 32 & 12 & 22 \\
-    Inner Layers & 5 & 5 & 5 & 5 \\
-    Inner Nodes & 10 & 16 & 10 & 16 \\
-    Activation Function & ReLU & ReLU & ReLU & ReLU \\
-    Connectivity & Full & Full & Full & Full \\
-    Output Nodes & 17 & 1 & 5 & 1 \\
-    Output Activation & $n$-hot & Linear & $n$-hot & Linear \\
-    Output Groups ($n$) & 5 & --- & 3 & --- \\
-    \hline
-\end{tabular}
-\end{table}
 
 \subsection{Experimental Setup}
 \label{subsec:farm_ex_setu}
@@ -372,12 +640,12 @@ correspond to the values for the regulatory agent networks
 The model was run for a variety of scenarios.
 All scenarios tested the variables $BMP_e$, $\Delta EE$,
 and $g$.
-Then, there were two classes of test:
+There were two classes of test:
 tests with agents with uniform memory accuracy (Table~\ref{tab:farm_ex_ar})
 and tests with agents with heterogeneous memory accuracy
 (Table~\ref{tab:farm_ex_mix}).
 
-BMP Efficacy ($BMP_e$) was varied from 0.0 to 1.0 in increments of 0.1.
+BMP Efficacy ($B_e$) was varied from 0.0 to 1.0 in increments of 0.1.
 This parameter represents the effectiveness of BMPs in reducing nutrient
 loading from agricultural fields.
 A value of 0.0 indicates that BMPs have no effect on nutrient loading,
@@ -389,59 +657,64 @@ Change in weather event frequency ($\Delta EE$) was varied from -0.2
 to 0.2 in increments of 0.05.
 This parameter represents the change in the frequency of extreme weather
 events, such as heavy rainfall, that may be induced by climate change
-compared to a historical baseline.
+compared to a historical baseline, so in cases where $\Delta EE = 0.2$,
+the expected number of extreme rainfall events that are going to
+occur will be 1.2 times the expected number of extreme rainfall events
+according to the baseline.
 
-\textbf{Change verbiage from threshold to scale?}
-The regulation change threshold ($g$) represents the maximum rate at which
+The regulation change limiter ($g$) represents the maximum rate at which
 the regulatory agent will adjust the regulatory environment.
-Three values were tested: an aggressive threshold ($g=0.2$),
-a moderate threshold ($g=0.05$), and
+Three values were tested: an aggressive limit ($g=0.2$),
+a moderate limit ($g=0.05$), and
 a restrictive case ($g=0$) for testing the model's ability to
 operate in a static regulatory environment.
+This value alters the width of the distribution that the regulatory
+parameters, $T_p$ and $S_b$, are adjusted by.
 
-\textbf{Change wording: $F'$ for accuracy and $F$ for forgetfulness is bad.}
 The impact of agent memory accuracy was tested for two types of agent
 populations.
 In uniform agent populations, all agents had the same memory recall
-accuracy ($F'$), where $F'$ is the probability that a memory will be
+accuracy ($F$), where $F$ is the probability that a memory will be
 recalled correctly.
 In heterogeneous agent populations, agents had different memory recall
-accuracies, 
+accuracy, 
 where a proportion of agents ($P$) had accuracy $F=1$
 and all other agents ($1-P$) had accuracy $F=0$.
 
+% TABLE - UNIFORM EX
 \begin{table}
 \centering
 \caption{Table listing experimental parameters for uniform population runs}
 \label{tab:farm_ex_ar}
-\begin{tabular}{ll}
+\begin{tabular}{lll}
 \hline
-Variable & Values \\
+Variable & & Values \\
 \hline
-BMP Efficacy ($BMP_e$) & 0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0 \\
-Change in Event Frequency ($\Delta EE$)
+BMP Efficacy & $B_e$ & 0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0 \\
+Change in Event Frequency & $\Delta EE$
     & -0.2, -0.15, -0.1, -0.05, 0.0, 0.05, 0.1, 0.15, 0.2 \\
-Regulation Change Threshold ($g$)
+Regulation Change Limiter & $g$
     & 0, 0.05, 0.2 \\
-Recall Accuracy ($F'$) & 0, 0.25, 0.5, 0.75, 1 \\
+Forgetfulness Factor & $F$ & 0, 0.25, 0.5, 0.75, 1 \\
 \hline
 \end{tabular}
 \end{table}
 
+% TABLE - MIXED EX
 \begin{table}
 \centering
 \caption{Table listing experimental parameters for mixed population runs}
 \label{tab:farm_ex_mix}
-\begin{tabular}{ll}
+\begin{tabular}{lll}
 \hline
-Variable & Values \\
+Variable & & Values \\
 \hline
-BMP Efficacy ($BMP_e$) & 0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0 \\
-Weather Event Frequency ($\Delta EE$)
+BMP Efficacy & $B_e$ & 0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0 \\
+Change in Event Frequency & $\Delta EE$
     & -0.2, -0.15, -0.1, -0.05, 0.0, 0.05, 0.1, 0.15, 0.2 \\
-Regulation Change Threshold ($g$)
+Regulation Change Limiter & $g$
     & 0, 0.05, 0.2 \\
-Population Mixing ($P$) & 0.25, 0.5, 0.75 \\
+Population Mixing & $P$ & 0.25, 0.5, 0.75 \\
 \hline
 \end{tabular}
 \end{table}
@@ -457,7 +730,7 @@ agents were trained for 1000 training episodes.
 If more than 10\%  of the agents ($n=48$) in the model failed to converge
 to a stable policy within 1000 training episodes, the model was discarded 
 and retrained; however, this occurred in less than 2\% of model runs.
-A lot showing the distribution of number of agents which converged
+A plot showing the distribution of number of agents which converged
 across model parameterizations is shown in Figure~\ref{fig:farm_sfc}.
 
 \begin{figure}
@@ -478,24 +751,39 @@ had reached some stable policy, but large enough to avoid overfitting.
 
 Models which were successfully trained and passed through this screening
 were then run for 40 testing runs.
-
-\subsection{Agent Behavior}
-\label{subsec:farm_results_agents}
+Within this section,
+some results have been omitted for readability.
+A listing of results and their associated model parameterizations can be found in
+Appendix~\ref{app:results}.
 
 \begin{figure}
+\centering
     \subcaptionbox{Initial State (y=2001)}{
         \includegraphics[width=0.3\linewidth]{figure/farm-sample-2001}
     }
-    \subcaptionbox{End State (y=2040, g=0.05)}{
-        \includegraphics[width=0.3\linewidth]{figure/farm-sample-2040-g05}
+    \hfill
+    \subcaptionbox{End State (y=2040, g=0.05, $\Delta EE=0$)}{
+        \includegraphics[width=0.3\linewidth]{figure/farm-sample-2040-1}
+    }
+    \hfill
+    \subcaptionbox{End State (y=2040, g=0.2, $\Delta EE=0.2$)}{
+        \includegraphics[width=.3\linewidth]{figure/farm-sample-2040-2}
     }
     \caption{Sample model output showing the change in BMP adoption likelihood
-    from a characteristic initial model state (a) to a characteristic end state (b) for a model run with a moderate regulatory change threshold ($g=0.05$).
+    from a characteristic initial model state (a) to a characteristic end states
+    for (b)
+    a model run with the parameterization ($g=0.05$, $\Delta EE=0$),
+    and (c)
+    a model run with the parameterization ($g=0.20$, $\Delta EE=0.2$).
     The color of each dot represents the likelihood that the agent will adopt
     BMPs, with green indicating a high likelihood and red indicating a low
     likelihood.}
     \label{fig:farm_mas}
 \end{figure}
+
+\subsection{Agent Behavior}
+\label{subsec:farm_results_agents}
+
 \subsubsection{Uniform Population Runs}
 
 For model parameterizations with uniform agent populations,
@@ -508,11 +796,7 @@ threshold ($g$) was set to 0.0,
 Figure~\ref{fig:farm_res_g05} for when $g$ was set to 0.05, and 
 Figure~\ref{fig:farm_res_g20} for when $g$ was set to 0.2.
 
-Some parameterizations have been omitted for readability.
-The full listing of results can be found in
-Appendix~\ref{app:results}.
-
-\begin{figure}
+\begin{figure}[p]
     \subcaptionbox{$F=0$}{\includegraphics[width=.3\textwidth]{figure/g0F0}}
     \hfill
     \subcaptionbox{$F=0.5$}{\includegraphics[width=.3\textwidth]{figure/g0F05}}
@@ -524,7 +808,7 @@ Appendix~\ref{app:results}.
     \label{fig:farm_res_g00}
 \end{figure}
 
-\begin{figure}
+\begin{figure}[p]
     \subcaptionbox{$F=0$}{\includegraphics[width=.3\textwidth]{figure/g05F0}}
     \hfill
     \subcaptionbox{$F=0.5$}{\includegraphics[width=.3\textwidth]{figure/g05F5}}
@@ -536,7 +820,7 @@ Appendix~\ref{app:results}.
     \label{fig:farm_res_g05}
 \end{figure}
 
-\begin{figure}
+\begin{figure}[p]
     \subcaptionbox{$F=0$}{\includegraphics[width=.3\textwidth]{figure/g20F0}}
     \hfill
     \subcaptionbox{$F=0.5$}{\includegraphics[width=.3\textwidth]{figure/g20F05}}
@@ -560,15 +844,6 @@ model run was recorded and used to generate a distribution of BMP adoption
 rates for each parameterization.
 Results of one set of parameterizations of these runs are shown
 in Figure~\ref{fig:farm_res_mix0} where $g=0$, $\Delta EE=0$.
-The results indicate generally that this method of introducing
-heterogeneity into the population can introduce variance in
-agent behavior, but that it is unclear if it leads to any
-of the desired emergent behavioral patterns.
-Further testing, specifically targeting these types of populations
-would be needed to draw stronger conclusions.
-
-A full table listing the results for all parameterizations can
-be found in Table~\ref{tab:full_res_mixed}.
 
 \begin{figure}
     \subcaptionbox{$P=0.25$}{\includegraphics[width=.3\textwidth]{figure/g0P25}}
@@ -583,14 +858,28 @@ be found in Table~\ref{tab:full_res_mixed}.
     \label{fig:farm_res_mix0}
 \end{figure}
 
+
 \section{Discussion}
 \label{sec:farm_disc}
 
-\subsection{Sensitivity and Limitations}
+Overall, results seem to indicate that this method of introducing
+deep reinforcement learning into agent-based modeling does have some
+viability for driving agent decision-making;
+however,
+some components of the experimental testing show how sensitive this
+kind of model can be be to its parameterization.
 
-The purpose of the regulatory agent was to help incentivize agent learning,
-but in results with $g=0.2$, the increased variability in model performance
-was high and the impact dominated all other parameters.
-\textbf{Detail, Scaling in results, mean and variance, why these results
-even matter}
+The purpose of the regulatory agent in the experimental model was
+to help incentivize specific agent behaviors, but the experimental
+parameter being used ($g$) had such a strong impact on the variability
+in agent behavior that the results of model runs where $g=0.2$
+had such high variance that it is difficult 
 
+Similarly,
+in the mixed population runs, the experimental method for introducing
+heterogeneity into the population can introduce variance in observed
+behaviors, but further testing would be needed to know if it leads
+to any of the desired emergent behavioral patterns.
+An experimental study specifically targeting an analysis of
+the heterogeneity in behaviors seen in real-world populations
+would be an ideal next-step.

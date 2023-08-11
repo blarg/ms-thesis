@@ -1,0 +1,365 @@
+\chapter{Land-Cover Model Design Overview}
+\label{app:land}
+
+This appendix contains an overview of the design of the land-cover transition
+model described in Chapter~\ref{chap:land}.
+It generally adheres to the technical principles of the ODD+D format,
+as shown in Appendix~\ref{app:farm},
+but is focused on where the specification provides details that do not appear
+in the main text of this thesis.
+
+\section{Overview}
+\subsection{Purpose}
+The purpose of this model is to explore potential changes to land cover as a result of human behavior as it develops in response to projected climatological, economic, and social scenarios within study areas of the Lake Champlain Basin of Vermont.
+Four types of human agents are present in this model; these agents represent some of the various types of people who make decisions that can change land cover on the landscape. Agents received input from their environment, including inter-agent communication and stochastic environmental factors (f.x. simulated extreme weather events). Agents made decisions as frequently as once per model month, and the decision policy guiding their decision-making was trained using deep reinforcement machine learning.
+
+\subsection{Entities, State Variables, and Scales}
+
+\subsubsection{Study Area}
+The study area being used as the basis of this model is a subsection 
+of the Lake Champlain Basin of Vermont. 
+Each parcel within the study area is treated as an agent within the model.
+A map of the study area and its initial land-cover is
+shown in Figure~\ref{fig:land_cells}.
+
+\subsubsection{Agents}
+
+There are four types of human agents present in this model --- agricultural,
+commercial, residential, and forester. 
+These agents represent various types of landowners/managers within each 
+study area who are able to make decisions that can affect land-use 
+and land-cover. 
+They make these decisions based on both their material state 
+and their perceived mental and financial state. 
+Agent behavior is trained using deep reinforcement machine learning, 
+which provides each agent with a decision-policy that guides their 
+decision-making during test model runs.
+
+The state variables that are present in every human agent in the model are outlined in Table~\ref{tab:land_state_share}
+
+\begin{longtable}{lcp{0.5\linewidth}l}
+\caption{Table of all properties that are shared amongst all human
+agents in the land-cover transition model.}
+\label{tab:land_state_share} \\
+\hline\hline
+Name && Description & Data type \\
+\hline\endfirsthead
+\caption[]{(continued...)}\\
+\hline\hline
+Name && Description & Data type \\
+\hline\endhead
+\hline\endfoot
+Agent ID && Unique identifier for this agent & \tt{uint} \\
+Parcel ID && Identifier of underlying land cell parcel & \tt{uint} \\
+Agent Status 
+&& Class-dependent internal status & \tt{enum} \\
+\multicolumn{4}{l}{Neural Networks} \\
+\multicolumn{1}{r}{Actor Network} & $\Theta_\mu$ & Network Weights & \tt{float[][]} \\
+\multicolumn{1}{r}{Critic Network} & $\Theta_Q$ & Network Weights & \tt{float[][]} \\
+\multicolumn{1}{r}{Target Actor} & $\Theta_{\mu'}$ & Network Weights & \tt{float[][]} \\
+\multicolumn{1}{r}{Target Critic} & $\Theta_{Q'}$ & Network Weights & \tt{float[][]} \\
+\end{longtable}
+
+\subsubsection*{Agricultural Agents}
+Agricultural agents model the behavior of farmers, herders, and other kinds of agricultural land managers within each study area. They make annual decisions about their farming practices, including whether they should change production in one of the four modeled agricultural industries (beef, dairy, corn, and hay) and whether they should implement an agricultural best management practice (BMP) to reduce phosphorous runoff on their land.
+The additional state variables that are found in every agricultural agent in the model are outlined in Table~\ref{tab:land_farm_state}.
+
+\begin{longtable}{lcp{.4\linewidth}l}
+\caption{Table of all state properties of agricultural agents and their
+associated data type for agricultural agents in the land-cover transition model.}
+\label{tab:land_farm_state} \\
+\hline \hline
+Name && Description & Data Type \\
+\hline
+\endfirsthead
+\caption[]{(continued...)}\\
+\hline\hline
+Name && Description & Data Type \\
+\hline\endhead
+\hline\endfoot
+\multicolumn{4}{l}{Land Parcel Data (sq~km)} \\
+\multicolumn{1}{r}{Crop Land Area} & $A_c$ & Land devoted to growing crops & \tt{float} \\
+\multicolumn{1}{r}{Pasture Land Area} & $A_p$ & Land devoted to grazing animals & \tt{float} \\
+\multicolumn{1}{r}{Total Land Area} & $A_{tot}$ & Total land in parcel & \tt{float} \\
+\multicolumn{4}{l}{Land Cover (Cell Count)} \\
+& $c_{c,m}$ & Cropland/In-use & \tt{uint} \\
+& $c_{c,a}$ & Cropland/Adjacent & \tt{uint} \\
+& $c_{p,m}$ & Pasture/In-use & \tt{uint} \\
+& $c_{p,a}$ & Pasture/Adjacent & \tt{uint} \\
+& $c_{a,u}$ & Agricultural/Unmaintained & \tt{uint} \\
+& $c_{o,a}$ & Other/Adjacent Cell Count & \tt{uint} \\
+Productivity \\
+\multicolumn{1}{r}{Corn} & $p_c$ & Corn production factor & \tt{float} \\
+\multicolumn{1}{r}{Hay} & $p_h$ & Hay production factor & \tt{float} \\
+\multicolumn{1}{r}{Beef} & $p_b$ & Beef production factor & \tt{float} \\
+\multicolumn{1}{r}{Dairy} & $p_d$ & Dairy production factor & \tt{float} \\
+\multicolumn{1}{r}{Phosphorous} & $p_{p,x}$ & Phosphorus production factors & \tt{float[3]} \\
+Cows Owned &&& \tt{uint} \\
+\multicolumn{4}{l}{Financial History (5-year)} \\
+\multicolumn{1}{r}{Realized Net} && Net yearly production & \tt{float[5]} \\
+\multicolumn{1}{r}{Expected Net} && Expected yearly production& \tt{float[5]} \\
+Extreme Event History &&& \tt{bool[5]}\\
+BMP Usage History && Did farm use BMP in last 5 years & \tt{bool[5]} \\
+Neighbors && References to neighboring agents & \tt{uint[5]} \\
+\end{longtable}
+
+\subsubsection*{Forestry Agents}
+
+Forestry agents model the behavior of loggers and other kinds of
+forested land managers within the study area.
+They make annual decisions about their practices
+and whether to implement an advised management practice (AMP)
+on their land.
+The forestry agents are implemented very similarly to the
+agricultural agents, but the land-cover of interest has been changed
+to forested land, and the production function has been replaced with
+a generalized forested productivity function.
+The additional state factors used by the forestry agents in their decision-making
+are listed in Table~\ref{tab:land_state_for}.
+
+\begin{longtable}{lcp{.4\linewidth}l}
+\caption{Table of state properties of forestry agents and their
+associated data types in the land-cover transition model.}
+\label{tab:land_state_for} \\
+\hline \hline
+Name & & Description & Data Type \\ \hline
+\endfirsthead
+\hline \hline
+Name & & Description & Data Type \\ \hline
+\endhead
+\hline\endfoot
+\multicolumn{4}{l}{Land Parcel Data (sq~km)} \\
+\multicolumn{1}{r}{Forested Land Area} & $A_p$ & Total forested land in parcel & \tt{float} \\
+\multicolumn{1}{r}{Total Land Area} & $A_{tot}$ & Total land in parcel & \tt{float} \\
+\multicolumn{4}{l}{Land Cover (Cell Count)} \\
+& $c_{f,m}$ & Forested/In-use & \tt{uint} \\
+& $c_{f,a}$ & Forested/Adjacent & \tt{uint} \\
+& $c_{f,u}$ & Forested/Unmaintained & \tt{uint} \\
+& $c_{o,a}$ & Other/Adjacent Cell Count & \tt{uint} \\
+\multicolumn{4}{l}{Productivity} \\
+\multicolumn{1}{r}{General} & $p_f$ 
+    & Relative production factor & \tt{float} \\
+\multicolumn{1}{r}{Phosphorous} & $p_p$
+    & Relative production factor & \tt{float} \\
+\multicolumn{4}{l}{Financial History (5-year)} \\
+\multicolumn{1}{r}{Realized Net} && Net yearly production & \tt{float[5]} \\
+\multicolumn{1}{r}{Expected Net} && Expected yearly production & \tt{float[5]} \\
+Extreme Event History &&& \tt{bool[5]}\\
+AMP Usage History && Did agent use AMP in last 5 years & \tt{bool[5]}\\
+Neighbors & & References to neighboring agents & \tt{uint[5]} \\
+\end{longtable}
+
+\subsubsection*{Commercial Agents}
+
+Commercial agents model the behavior of shops, factories, offices, 
+and other kinds of commercial land-holders within the study area. 
+They make decisions bi/trimonthly about their workforce, 
+including their available jobs and the associated salaries.
+Byproducts of their actions impact the density and sprawl of urban
+land cover on the landscape.
+The additional state factors that it uses in decision-making are listed
+in Table~\ref{tab:land_state_com}.
+
+\begin{longtable}{lcp{.45\linewidth}l}
+\caption{Table of state properties of commercial agents and their
+associated data types in the land-cover transition model.}
+\label{tab:land_state_com} \\
+\hline \hline
+Name & & Description & Data Type \\ \hline
+\endfirsthead
+\hline \hline
+Name & & Description & Data Type \\ \hline
+\endhead
+\hline\endfoot
+Days Operational && Number of days operating & \tt{uint}\\
+Employee Count && Current number of employed agents & \tt{uint}\\
+Employee Capacity && Maximum number of employed agents & \tt{uint}\\
+Employee IDs && IDs of employed agents & \tt{uint*}\\
+Employee Salaries && Salaries of employed agents & \tt{float*}\\
+Total Pay && Total salaried paid to all employees & \tt{float} \\
+Budget && Total monthly budget & \tt{float} \\
+\end{longtable}
+
+\subsubsection*{Residential Agents}
+
+Residential agents model the behavior of renters and landowners within 
+the study area. 
+They make two decisions annually: whether to attempt a job change 
+and whether to try to move houses. 
+Household satisfaction, and their reward value~$R_r$,
+is valued as a combination of financial stability 
+and mental satisfaction. 
+Each household earns wages provided by a commercial agent --- 
+these wages are determined by a stochastic process and can be adjusted by 
+the job over time.
+The decisions of these agents do not directly impact land cover change
+on their associated parcel, but land cover can transition within their
+parcel as a result of the decisions of other agents.
+
+\begin{longtable}{lcp{.5\linewidth}l}
+\caption{Table of state properties of residential agents and their
+associated data types in the land-cover transition model.}
+\label{tab:land_state_res} \\
+\hline \hline
+Name & & Description & Data Type \\ \hline
+\endfirsthead
+\hline \hline
+Name & & Description & Data Type \\ \hline
+\endhead
+\hline\endfoot
+Employer ID && ID of current employer & \tt{uint} \\
+Housing Costs && Total monthly cost of living & \tt{float} \\
+Salary && Total monthly income from employer & \tt{float} \\
+Monthly Budget && Net income over past 1 month & \tt{float} \\
+Yearly Budget && Net income over past 12 months & \tt{float[12]} \\
+Time in State && Number of time steps with current `mood' & \tt{uint} \\
+Failed Action Count && Number of consecutive failed actions & \tt{uint} \\
+\end{longtable}
+
+\subsection{Process Overview and Scheduling}
+
+Each time-step within the model is representative of one modeled month.
+Each model year (12 time-steps), the number of extreme weather events for the year are
+generated and the agricultural and forestry agents act.
+
+The commercial agent has two primary decision-vectors,
+the decision to increase or decrease overall productivity is resolved trimonthly (3 time-steps),
+while the decision to hire/fire staff is resolved bimonthly (2 time-steps).
+At the end of each model year (12 time-steps), the commercial agent will increase the
+salary of all employed residential agents by 10\%.
+
+A commercial agent which loses its last employee,
+by firing or quitting, will enter the ``bankrupt'' state at the end of
+the occurent time-step, and will not be replaced with a ``new'' commercial agent until
+3 time-steps have passed.
+This new agent has a period of 3--6 time-steps to acquire its first employee before it
+can bankrupt again.
+
+The residential agent acts monthly (1 time-step); however, its actions are dependant
+on the behavior of other agents in the model --- f.x. a residential agent cannot move
+into an occupied house regardless of its price.
+If a residential agent intends to leaves its job, house, or the entire system,
+this action cannot be blocked, it is only additive actions which face this restriction.
+
+A new residential agent may only enter the system if there is an available residential
+parcel with an occupation status of ``vacant'' or ``for-sale''
+and the total number of residential agents within the system does not match nor exceed
+the current residential capacity.
+This new residential agent will be added to the system at the start of the following
+time-step.
+
+\section{Initialization}
+
+\subsection{Agent Connections}
+
+Agricultural and forestry agents are all connected to their
+5-nearest agents of the same type.
+Since these agents do not move on the landscape, these networks are
+constant throughout each model run.
+
+Commercial and residential agents exist within a bipartite network.
+During model initialization, each commercial agent starts with an
+employment capacity of 10.
+At model start, 90\% of residential agents are assigned jobs
+selected with uniform likelihood from that available commercial capacity.
+The initial employment capacity within the selected study area ensures that
+there will always be more initial capacity than 90\% of the initial residential capacity.
+These networks are dynamic and change as agents make decisions throughout each model run.
+
+\subsection{Initial Agent State}
+
+Many of these values are selected from triangular distributions
+which was parameterized according to the calibration of the
+underlying economic model.
+Triangular distributions, as described in Section~\ref{sec:farmer_init},
+are used for the initialization of many parameters.
+Neural networks had weights initialized according to the He~initialization
+algorithm.~\cite{he2004initialization}.
+
+\begin{longtable}{lcll}
+\hline\hline
+Value & & Initialization & Type \\
+\hline
+\endhead
+\hline\endfoot
+Agent ID & & Assigned sequentially from 0 & \tt{uint} \\
+Parcel ID & & Read from Input Data & \tt{uint} \\
+Actor-Network Weights & $\Theta_\mu$ & He() & \tt{float[][]} \\
+Critic-Network Weights & $\Theta_Q$ & He() & \tt{float[][]} \\
+Target-Actor Weights & $\Theta_{\mu'}$ 
+    & Copied from $\Theta_\mu$ & \tt{float[][]} \\
+Target-Critic Weights & $\Theta_{Q'}$ 
+    & Copied from $\Theta_Q$ & \tt{float[][]} \\
+\end{longtable}
+
+\subsubsection*{Agricultural Agents}
+\label{sec:land_farmer_init}
+Many of the initial values used by the agricultural agents are initialized
+from the input data.
+The variables which are set during initialization are listed in
+Table~\ref{tab:land_farmer_init}.
+
+\begin{longtable}{lcll}
+    \caption{Table listing initialization of parameters of
+    the agricultural agents in the land-cover transition model}
+    \label{tab:land_farmer_init}
+    \\
+    \hline\hline
+    Value & & Initialization & Type \\
+    \hline
+    \endfirsthead
+    \caption[]{(continued ...)}\\ \hline\hline
+    Value & & Initialization & Type\\ \hline
+    \endhead
+    \hline
+    \endfoot
+    Parcel Data & $A_x$ & 
+    Read from input file & \tt{float} \\
+    Corn Production (USD) & $p_c$ 
+        & $\Tri_2(3.362551, 4259232)$ & \tt{float} \\
+    Corn Production (P) & $p_{p,c}$ 
+        & $\Tri_2(\SI{2.02e-4}{}, \SI{6.17e-4}{})$ & \tt{float} \\
+    Hay Production (USD) & $p_h$ 
+        & $\Tri_2(0.358672, 0.470757)$ & \tt{float} \\
+    Hay Production (P) & $p_{p,h}$
+        & $\Tri_2(\SI{3.37e-5}{}, \SI{1.12e-4}{})$ & \tt{float} \\
+    Beef Production (USD) & $p_b$ & $\Tri_2(900.0, 1200.0)$ & \tt{float} \\
+    Dairy Production (USD) & $p_d$ & $\Tri_2(210.0, 250.0)$ & \tt{float} \\
+    Cow Production (P) & $p_{p,[bd]}$ 
+        & $\Tri_2(\SI{3.366e-4}{}, \SI{7.853e-4}{})$ & \tt{float} \\
+    Cows Owned & $C$ & $\Tri_2(3600, 7800)$ & \tt{uint} \\
+\end{longtable}
+
+\subsubsection*{Residential and Commercial Agents}
+
+Initial agent salaries are selected from the weighted categorical distribution described in
+Table~\ref{tab:sals} on the range $\left(250, 1000\right)$.
+The initial rent/mortgage price for each urban land parcel is selected from a uniform distribution
+on the range $\left(400, 1100\right)$.
+
+\begin{longtable}{ll}
+\caption{Table listing distribution of initial agent salaries and the weight on their probability.}\label{tab:sals}\\
+\hline\hline
+Weight & Initial Salary \\
+\hline\endfirsthead
+\hline\hline
+Weight & Initial Salary \\
+\hline\endhead
+\hline\endfoot
+    10 & 250 \\
+    20 & 300 \\
+    30 & 350 \\
+    50 & 400 \\
+    70 & 450 \\
+    85 & 500 \\
+    90 & 550 \\
+    85 & 600 \\
+    70 & 650 \\
+    60 & 700 \\
+    50 & 750 \\
+    50 & 800 \\
+    50 & 850 \\
+    50 & 900 \\
+    30 & 950 \\
+    20 & 1000 \\
+\end{longtable}
